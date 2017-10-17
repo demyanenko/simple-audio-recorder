@@ -15,40 +15,46 @@ namespace SimpleAudioRecorder
         // ReSharper disable once UnusedParameter.Local
         static void Main(string[] args)
         {
-            //choose the capture mode
-            Console.WriteLine("Select capturing mode:");
-            Console.WriteLine("- 1: Capture");
-            Console.WriteLine("- 2: LoopbackCapture");
+            CaptureMode captureMode;
+            if (Boolean.Parse(ConfigurationManager.AppSettings["defaultToLoopback"]))
+            {
+                captureMode = CaptureMode.LoopbackCapture;
+            }
+            else
+            {
+                Console.WriteLine("Select capturing mode:");
+                Console.WriteLine("- 1: Capture");
+                Console.WriteLine("- 2: LoopbackCapture");
 
-            CaptureMode captureMode = (CaptureMode)ReadInteger(1, 2);
+                captureMode = (CaptureMode)ReadInteger(1, 2);
+            }
             DataFlow dataFlow = captureMode == CaptureMode.Capture ? DataFlow.Capture : DataFlow.Render;
 
-            //---
-            
-            //select the device:
             var devices = MMDeviceEnumerator.EnumerateDevices(dataFlow, DeviceState.Active);
             if (!devices.Any())
             {
                 Console.WriteLine("No devices found.");
                 return;
             }
-
-            Console.WriteLine("Select device:");
-            for (int i = 0; i < devices.Count; i++)
+            MMDevice device;
+            if (devices.Count == 1)
             {
-                Console.WriteLine("- {0:#00}: {1}", i, devices[i].FriendlyName);
+                device = devices[0];
             }
-            int selectedDeviceIndex = ReadInteger(Enumerable.Range(0, devices.Count).ToArray());
-            var device = devices[selectedDeviceIndex];
+            else
+            {
+                Console.WriteLine("Select device:");
+                for (int i = 0; i < devices.Count; i++)
+                {
+                    Console.WriteLine("- {0:#00}: {1}", i, devices[i].FriendlyName);
+                }
+                int selectedDeviceIndex = ReadInteger(Enumerable.Range(0, devices.Count).ToArray());
+                device = devices[selectedDeviceIndex];
+            }
 
-            //--- choose format
             int sampleRate = Int32.Parse(ConfigurationManager.AppSettings["sampleRate"]);
             int bitsPerSample = Int32.Parse(ConfigurationManager.AppSettings["bitsPerSample"]);
             int channels = 1;
-
-            //---
-
-            //start recording
 
             //create a new soundIn instance
             using (WasapiCapture soundIn = captureMode == CaptureMode.Capture
